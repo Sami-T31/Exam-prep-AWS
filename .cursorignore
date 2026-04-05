@@ -1,0 +1,9 @@
+# Prevent Cursor from indexing large directories that cause OOM crashes
+node_modules/
+dist/
+build/
+.next/
+coverage/
+docker-data/
+packages/shared/dist/
+backend/dist/

@@ -1,0 +1,45 @@
+{
+  "common": {
+    "logOut": "ውጣ",
+    "dashboard": "ዳሽቦርድ",
+    "retry": "ድገም",
+    "close": "ዝጋ"
+  },
+  "language": {
+    "label": "ቋንቋ",
+    "english": "እንግሊዝኛ",
+    "amharic": "አማርኛ"
+  },
+  "dashboard": {
+    "welcomeBack": "እንኳን በደህና መጡ",
+    "overview": "የዝግጅትዎን አጠቃላይ ሁኔታ ይመልከቱ።",
+    "startMockExam": "ሞክ ፈተና ጀምር",
+    "loadError": "የዳሽቦርድ መረጃ መጫን አልተቻለም። እባክዎ ደግመው ይሞክሩ።",
+    "answeredToday": "ዛሬ የተመለሱ",
+    "overallAccuracy": "አጠቃላይ ትክክለኛነት",
+    "currentStreak": "ቀጣይ ቀናት",
+    "strongestSubject": "በጣም ጠንካራ ክፍል",
+    "questionsLast24h": "ባለፉት 24 ሰዓታት የተመለሱ ጥያቄዎች",
+    "acrossAllSubjects": "በሁሉም ክፍሎች",
+    "consecutiveActiveDays": "ቀጣይ ንቁ ቀናት",
+    "highestAttemptVolume": "እስካሁን ከፍተኛ የሙከራ መጠን",
+    "noData": "መረጃ የለም"
+  },
+  "progress": {
+    "title": "የእድገት ዳሽቦርድ",
+    "subtitle": "ቀጣይነት፣ የክፍል አፈጻጸም እና ደካማ ቦታዎችን ተከታተሉ።",
+    "perSubjectProgress": "በክፍል የተከፋፈለ እድገት",
+    "viewBreakdown": "ዝርዝር እይታ",
+    "attempts": "ሙከራዎች",
+    "accuracy": "ትክክለኛነት",
+    "subjectBreakdownTitle": "የትክክለኛነት ዝርዝር",
+    "correctVsIncorrect": "ትክክል እና ስህተት",
+    "correct": "ትክክል",
+    "incorrect": "ስህተት",
+    "noSubjectAttempts": "እስካሁን የክፍል ሙከራ የለም።",
+    "subjectBreakdownLoadError": "የክፍሉን ዝርዝር መጫን አልተቻለም።",
+    "noTopicAttempts": "ለዚህ ክፍል በርዕስ ደረጃ ሙከራ የለም።",
+    "grade": "ክፍል"
+  }
+}
+

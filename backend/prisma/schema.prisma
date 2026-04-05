@@ -1,0 +1,649 @@
+// =============================================================================
+// Prisma Schema — Ethiopian Exam Prep Platform
+// =============================================================================
+// This file defines every database table, relationship, and index.
+//
+// Naming conventions (see NAMING_CONVENTIONS.md §5):
+//   Prisma models:  PascalCase singular  (User, Question, MockExam)
+//   Prisma fields:  camelCase            (questionText, createdAt)
+//   DB tables:      plural snake_case    (users, questions, mock_exams)
+//   DB columns:     snake_case           (question_text, created_at)
+//
+// After editing this file:
+//   npx prisma migrate dev --name describe_your_change
+//   npx prisma generate
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+// These mirror the enums in packages/shared/src/constants/enums.ts exactly.
+
+enum UserRole {
+  STUDENT
+  ADMIN
+
+  @@map("user_role")
+}
+
+enum StreamSlug {
+  NATURAL_SCIENCE
+  SOCIAL_SCIENCE
+
+  @@map("stream_slug")
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+
+  @@map("difficulty")
+}
+
+enum QuestionStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+
+  @@map("question_status")
+}
+
+enum SubscriptionPlan {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+
+  @@map("subscription_plan")
+}
+
+enum SubscriptionStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  CANCELLED
+
+  @@map("subscription_status")
+}
+
+enum PaymentMethod {
+  TELEBIRR
+  CBE_BIRR
+  BANK_TRANSFER
+
+  @@map("payment_method")
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+
+  @@map("payment_status")
+}
+
+enum LeaderboardPeriod {
+  WEEKLY
+  MONTHLY
+  ALL_TIME
+
+  @@map("leaderboard_period")
+}
+
+enum AppPlatform {
+  WEB
+  MOBILE
+
+  @@map("app_platform")
+}
+
+// ---------------------------------------------------------------------------
+// User
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String    @id @default(uuid()) @map("id")
+  name         String    @map("name")
+  email        String    @unique @map("email")
+  phone        String    @unique @map("phone")
+  passwordHash String    @map("password_hash")
+  role         UserRole  @default(STUDENT) @map("role")
+  region       String    @default("UNKNOWN") @map("region")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  consent             Consent?
+  appSessions         AppSession[]
+  featureUsageEvents  FeatureUsageEvent[]
+  videoProgress       VideoProgress[]
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
+  subscriptions       Subscription[]
+  questionAttempts    QuestionAttempt[]
+  bookmarks           Bookmark[]
+  mockExamAttempts    MockExamAttempt[]
+  leaderboardEntries  LeaderboardEntry[]
+  payments            Payment[]
+
+  @@index([email], map: "users_email_idx")
+  @@index([deletedAt], map: "users_deleted_at_idx")
+  @@map("users")
+}
+
+// ---------------------------------------------------------------------------
+// RefreshToken — stores hashed refresh tokens for revocation
+// ---------------------------------------------------------------------------
+
+model RefreshToken {
+  id        String   @id @default(uuid()) @map("id")
+  userId    String   @map("user_id")
+  tokenHash String   @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "refresh_tokens_user_id_idx")
+  @@index([expiresAt], map: "refresh_tokens_expires_at_idx")
+  @@map("refresh_tokens")
+}
+
+// ---------------------------------------------------------------------------
+// PasswordResetToken — one-time tokens for the forgot-password flow
+// ---------------------------------------------------------------------------
+
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @map("id")
+  userId    String    @map("user_id")
+  tokenHash String    @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "password_reset_tokens_user_id_idx")
+  @@index([expiresAt], map: "password_reset_tokens_expires_at_idx")
+  @@map("password_reset_tokens")
+}
+
+// ---------------------------------------------------------------------------
+// Stream — academic streams (Natural Science, Social Science)
+// ---------------------------------------------------------------------------
+
+model Stream {
+  id   Int        @id @default(autoincrement()) @map("id")
+  name String     @map("name")
+  slug StreamSlug @unique @map("slug")
+
+  subjects SubjectStream[]
+
+  @@map("streams")
+}
+
+// ---------------------------------------------------------------------------
+// Subject — academic subjects (Mathematics, Physics, etc.)
+// ---------------------------------------------------------------------------
+
+model Subject {
+  id   Int     @id @default(autoincrement()) @map("id")
+  name String  @unique @map("name")
+  icon String? @map("icon")
+
+  streams            SubjectStream[]
+  topics             Topic[]
+  mockExams          MockExam[]
+  leaderboardEntries LeaderboardEntry[]
+
+  @@map("subjects")
+}
+
+// ---------------------------------------------------------------------------
+// SubjectStream — join table for the many-to-many between Subject and Stream
+// ---------------------------------------------------------------------------
+
+model SubjectStream {
+  subjectId Int @map("subject_id")
+  streamId  Int @map("stream_id")
+
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  stream  Stream  @relation(fields: [streamId], references: [id], onDelete: Cascade)
+
+  @@id([subjectId, streamId])
+  @@map("subject_streams")
+}
+
+// ---------------------------------------------------------------------------
+// Grade — grade levels (9, 10, 11, 12)
+// ---------------------------------------------------------------------------
+
+model Grade {
+  id          Int @id @default(autoincrement()) @map("id")
+  gradeNumber Int @unique @map("grade_number")
+
+  topics                          Topic[]
+  questions                       Question[]
+  mockExams                       MockExam[]
+  topicAccuracyAggregates         TopicAccuracyAggregate[]
+  gradeRegionEngagementAggregates GradeRegionEngagementAggregate[]
+
+  @@map("grades")
+}
+
+// ---------------------------------------------------------------------------
+// Topic — sub-divisions within a subject at a grade level
+// ---------------------------------------------------------------------------
+
+model Topic {
+  id        Int    @id @default(autoincrement()) @map("id")
+  name      String @map("name")
+  subjectId Int    @map("subject_id")
+  gradeId   Int    @map("grade_id")
+  sortOrder Int    @default(0) @map("sort_order")
+
+  subject                 Subject                  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  grade                   Grade                    @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  questions               Question[]
+  topicAccuracyAggregates TopicAccuracyAggregate[]
+
+  @@index([subjectId, gradeId], map: "topics_subject_id_grade_id_idx")
+  @@map("topics")
+}
+
+// ---------------------------------------------------------------------------
+// Question — the core content unit
+// ---------------------------------------------------------------------------
+
+model Question {
+  id           String         @id @default(uuid()) @map("id")
+  questionText String         @map("question_text")
+  imageUrl     String?        @map("image_url")
+  explanation  String?        @map("explanation")
+  difficulty   Difficulty     @map("difficulty")
+  status       QuestionStatus @default(DRAFT) @map("status")
+  topicId      Int            @map("topic_id")
+  gradeId      Int            @map("grade_id")
+  year         Int?           @map("year")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  deletedAt    DateTime?      @map("deleted_at")
+
+  topic                  Topic                   @relation(fields: [topicId], references: [id])
+  grade                  Grade                   @relation(fields: [gradeId], references: [id])
+  options                QuestionOption[]
+  attempts               QuestionAttempt[]
+  bookmarks              Bookmark[]
+  mockExamQuestions      MockExamQuestion[]
+  questionMissAggregates QuestionMissAggregate[]
+
+  @@index([topicId], map: "questions_topic_id_idx")
+  @@index([gradeId], map: "questions_grade_id_idx")
+  @@index([difficulty], map: "questions_difficulty_idx")
+  @@index([status], map: "questions_status_idx")
+  @@index([topicId, gradeId, difficulty], map: "questions_topic_grade_difficulty_idx")
+  @@index([deletedAt], map: "questions_deleted_at_idx")
+  @@map("questions")
+}
+
+// ---------------------------------------------------------------------------
+// QuestionOption — answer choices (A, B, C, D) for a question
+// ---------------------------------------------------------------------------
+
+model QuestionOption {
+  id          String  @id @default(uuid()) @map("id")
+  questionId  String  @map("question_id")
+  optionLabel String  @map("option_label")
+  optionText  String  @map("option_text")
+  isCorrect   Boolean @map("is_correct")
+
+  question           Question          @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedInAttempts QuestionAttempt[]
+
+  @@index([questionId], map: "question_options_question_id_idx")
+  @@map("question_options")
+}
+
+// ---------------------------------------------------------------------------
+// QuestionAttempt — records a user's answer to a question
+// ---------------------------------------------------------------------------
+
+model QuestionAttempt {
+  id                String   @id @default(uuid()) @map("id")
+  userId            String   @map("user_id")
+  questionId        String   @map("question_id")
+  selectedOptionId  String   @map("selected_option_id")
+  isCorrect         Boolean  @map("is_correct")
+  timeSpentSeconds  Int      @map("time_spent_seconds")
+  attemptedAt       DateTime @default(now()) @map("attempted_at")
+  mockExamAttemptId String?  @map("mock_exam_attempt_id")
+
+  user            User             @relation(fields: [userId], references: [id])
+  question        Question         @relation(fields: [questionId], references: [id])
+  selectedOption  QuestionOption   @relation(fields: [selectedOptionId], references: [id])
+  mockExamAttempt MockExamAttempt? @relation(fields: [mockExamAttemptId], references: [id])
+
+  @@index([userId], map: "question_attempts_user_id_idx")
+  @@index([questionId], map: "question_attempts_question_id_idx")
+  @@index([userId, attemptedAt], map: "question_attempts_user_id_attempted_at_idx")
+  @@index([mockExamAttemptId], map: "question_attempts_mock_exam_attempt_id_idx")
+  @@map("question_attempts")
+}
+
+// ---------------------------------------------------------------------------
+// Bookmark — saved questions for later review
+// ---------------------------------------------------------------------------
+
+model Bookmark {
+  id         String   @id @default(uuid()) @map("id")
+  userId     String   @map("user_id")
+  questionId String   @map("question_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questionId], map: "bookmarks_user_id_question_id_unique")
+  @@index([userId], map: "bookmarks_user_id_idx")
+  @@map("bookmarks")
+}
+
+// ---------------------------------------------------------------------------
+// MockExam — timed exams that simulate real national exam conditions
+// ---------------------------------------------------------------------------
+
+model MockExam {
+  id              String    @id @default(uuid()) @map("id")
+  title           String    @map("title")
+  subjectId       Int       @map("subject_id")
+  gradeId         Int       @map("grade_id")
+  durationMinutes Int       @map("duration_minutes")
+  questionCount   Int       @map("question_count")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  subject           Subject            @relation(fields: [subjectId], references: [id])
+  grade             Grade              @relation(fields: [gradeId], references: [id])
+  mockExamQuestions MockExamQuestion[]
+  attempts          MockExamAttempt[]
+
+  @@index([subjectId, gradeId], map: "mock_exams_subject_id_grade_id_idx")
+  @@index([deletedAt], map: "mock_exams_deleted_at_idx")
+  @@map("mock_exams")
+}
+
+// ---------------------------------------------------------------------------
+// MockExamQuestion — join table linking questions to a mock exam
+// ---------------------------------------------------------------------------
+
+model MockExamQuestion {
+  id         String @id @default(uuid()) @map("id")
+  mockExamId String @map("mock_exam_id")
+  questionId String @map("question_id")
+  sortOrder  Int    @default(0) @map("sort_order")
+
+  mockExam MockExam @relation(fields: [mockExamId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id])
+
+  @@unique([mockExamId, questionId], map: "mock_exam_questions_exam_id_question_id_unique")
+  @@index([mockExamId], map: "mock_exam_questions_mock_exam_id_idx")
+  @@map("mock_exam_questions")
+}
+
+// ---------------------------------------------------------------------------
+// MockExamAttempt — a user's attempt at a mock exam
+// ---------------------------------------------------------------------------
+
+model MockExamAttempt {
+  id               String    @id @default(uuid()) @map("id")
+  userId           String    @map("user_id")
+  mockExamId       String    @map("mock_exam_id")
+  score            Int       @map("score")
+  total            Int       @map("total")
+  timeSpentSeconds Int       @map("time_spent_seconds")
+  startedAt        DateTime  @default(now()) @map("started_at")
+  completedAt      DateTime? @map("completed_at")
+
+  user             User              @relation(fields: [userId], references: [id])
+  mockExam         MockExam          @relation(fields: [mockExamId], references: [id])
+  questionAttempts QuestionAttempt[]
+
+  @@index([userId], map: "mock_exam_attempts_user_id_idx")
+  @@index([mockExamId], map: "mock_exam_attempts_mock_exam_id_idx")
+  @@map("mock_exam_attempts")
+}
+
+// ---------------------------------------------------------------------------
+// Subscription — user subscription to premium content
+// ---------------------------------------------------------------------------
+
+model Subscription {
+  id               String             @id @default(uuid()) @map("id")
+  userId           String             @map("user_id")
+  plan             SubscriptionPlan   @map("plan")
+  status           SubscriptionStatus @default(PENDING) @map("status")
+  startsAt         DateTime           @map("starts_at")
+  expiresAt        DateTime           @map("expires_at")
+  paymentReference String?            @map("payment_reference")
+  createdAt        DateTime           @default(now()) @map("created_at")
+
+  user     User      @relation(fields: [userId], references: [id])
+  payments Payment[]
+
+  @@index([userId], map: "subscriptions_user_id_idx")
+  @@index([status, expiresAt], map: "subscriptions_status_expires_at_idx")
+  @@map("subscriptions")
+}
+
+// ---------------------------------------------------------------------------
+// Payment — payment records for audit trail
+// ---------------------------------------------------------------------------
+
+model Payment {
+  id                String        @id @default(uuid()) @map("id")
+  userId            String        @map("user_id")
+  subscriptionId    String        @map("subscription_id")
+  amount            Decimal       @map("amount") @db.Decimal(10, 2)
+  currency          String        @default("ETB") @map("currency")
+  method            PaymentMethod @map("method")
+  status            PaymentStatus @default(PENDING) @map("status")
+  providerReference String?       @map("provider_reference")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  verifiedAt        DateTime?     @map("verified_at")
+
+  user         User         @relation(fields: [userId], references: [id])
+  subscription Subscription @relation(fields: [subscriptionId], references: [id])
+
+  @@index([userId], map: "payments_user_id_idx")
+  @@index([subscriptionId], map: "payments_subscription_id_idx")
+  @@index([status], map: "payments_status_idx")
+  @@map("payments")
+}
+
+// ---------------------------------------------------------------------------
+// LeaderboardEntry — persistent snapshot of leaderboard rankings
+// Primary leaderboard lives in Redis; this table is for persistence/history.
+// ---------------------------------------------------------------------------
+
+model LeaderboardEntry {
+  id        String            @id @default(uuid()) @map("id")
+  userId    String            @map("user_id")
+  subjectId Int?              @map("subject_id")
+  score     Int               @map("score")
+  period    LeaderboardPeriod @map("period")
+  updatedAt DateTime          @updatedAt @map("updated_at")
+
+  user    User     @relation(fields: [userId], references: [id])
+  subject Subject? @relation(fields: [subjectId], references: [id])
+
+  @@unique([userId, subjectId, period], map: "leaderboard_entries_user_subject_period_unique")
+  @@index([period, subjectId, score(sort: Desc)], map: "leaderboard_entries_period_subject_score_idx")
+  @@map("leaderboard_entries")
+}
+
+model Consent {
+  id                   String    @id @default(uuid()) @map("id")
+  userId               String    @unique @map("user_id")
+  analyticsOptIn       Boolean   @default(false) @map("analytics_opt_in")
+  personalizationOptIn Boolean   @default(false) @map("personalization_opt_in")
+  marketingOptIn       Boolean   @default(false) @map("marketing_opt_in")
+  acceptedTermsAt      DateTime? @map("accepted_terms_at")
+  acceptedPrivacyAt    DateTime? @map("accepted_privacy_at")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("consents")
+}
+
+model AppSession {
+  id         String      @id @default(uuid()) @map("id")
+  userId     String      @map("user_id")
+  startedAt  DateTime    @default(now()) @map("started_at")
+  endedAt    DateTime?   @map("ended_at")
+  platform   AppPlatform @default(WEB) @map("platform")
+  appVersion String?     @map("app_version")
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startedAt], map: "app_sessions_user_id_started_at_idx")
+  @@index([platform, startedAt], map: "app_sessions_platform_started_at_idx")
+  @@map("app_sessions")
+}
+
+model FeatureUsageEvent {
+  id        String      @id @default(uuid()) @map("id")
+  userId    String      @map("user_id")
+  eventName String      @map("event_name")
+  metadata  Json?       @map("metadata")
+  platform  AppPlatform @default(WEB) @map("platform")
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt], map: "feature_usage_events_user_id_created_at_idx")
+  @@index([eventName, createdAt], map: "feature_usage_events_event_name_created_at_idx")
+  @@index([platform, createdAt], map: "feature_usage_events_platform_created_at_idx")
+  @@map("feature_usage_events")
+}
+
+model VideoProgress {
+  id              String    @id @default(uuid()) @map("id")
+  userId          String    @map("user_id")
+  videoId         String    @map("video_id")
+  secondsWatched  Int       @default(0) @map("seconds_watched")
+  percentComplete Float     @default(0) @map("percent_complete")
+  lastPositionSec Int       @default(0) @map("last_position_sec")
+  completedAt     DateTime? @map("completed_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, videoId], map: "video_progress_user_id_video_id_unique")
+  @@index([userId, updatedAt], map: "video_progress_user_id_updated_at_idx")
+  @@map("video_progress")
+}
+
+model DailyActiveMetric {
+  id                        String      @id @default(uuid()) @map("id")
+  date                      DateTime    @map("date")
+  platform                  AppPlatform @map("platform")
+  totalSessions             Int         @default(0) @map("total_sessions")
+  uniqueActiveUsers         Int         @default(0) @map("unique_active_users")
+  averageSessionsPerUser    Float       @default(0) @map("average_sessions_per_user")
+  averageSessionDurationSec Float       @default(0) @map("average_session_duration_sec")
+  createdAt                 DateTime    @default(now()) @map("created_at")
+  updatedAt                 DateTime    @updatedAt @map("updated_at")
+
+  @@unique([date, platform], map: "daily_active_metrics_date_platform_unique")
+  @@index([date], map: "daily_active_metrics_date_idx")
+  @@map("daily_active_metrics")
+}
+
+model SignupRetentionMetric {
+  id                String      @id @default(uuid()) @map("id")
+  cohortDate        DateTime    @map("cohort_date")
+  platform          AppPlatform @map("platform")
+  cohortSize        Int         @default(0) @map("cohort_size")
+  day1RetentionPct  Float       @default(0) @map("day1_retention_pct")
+  day7RetentionPct  Float       @default(0) @map("day7_retention_pct")
+  day30RetentionPct Float       @default(0) @map("day30_retention_pct")
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+
+  @@unique([cohortDate, platform], map: "signup_retention_metrics_cohort_date_platform_unique")
+  @@index([cohortDate], map: "signup_retention_metrics_cohort_date_idx")
+  @@map("signup_retention_metrics")
+}
+
+model TopicAccuracyAggregate {
+  id              String   @id @default(uuid()) @map("id")
+  date            DateTime @map("date")
+  topicId         Int      @map("topic_id")
+  gradeId         Int      @map("grade_id")
+  cohortSize      Int      @default(0) @map("cohort_size")
+  attemptCount    Int      @default(0) @map("attempt_count")
+  accuracyPercent Float    @default(0) @map("accuracy_percent")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  grade Grade @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+
+  @@unique([date, topicId, gradeId], map: "topic_accuracy_aggregates_date_topic_grade_unique")
+  @@index([cohortSize], map: "topic_accuracy_aggregates_cohort_size_idx")
+  @@index([date], map: "topic_accuracy_aggregates_date_idx")
+  @@map("topic_accuracy_aggregates")
+}
+
+model QuestionMissAggregate {
+  id              String   @id @default(uuid()) @map("id")
+  date            DateTime @map("date")
+  questionId      String   @map("question_id")
+  cohortSize      Int      @default(0) @map("cohort_size")
+  attemptCount    Int      @default(0) @map("attempt_count")
+  missCount       Int      @default(0) @map("miss_count")
+  missRatePercent Float    @default(0) @map("miss_rate_percent")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([date, questionId], map: "question_miss_aggregates_date_question_unique")
+  @@index([cohortSize], map: "question_miss_aggregates_cohort_size_idx")
+  @@index([date], map: "question_miss_aggregates_date_idx")
+  @@map("question_miss_aggregates")
+}
+
+model GradeRegionEngagementAggregate {
+  id                String   @id @default(uuid()) @map("id")
+  date              DateTime @map("date")
+  gradeId           Int      @map("grade_id")
+  region            String   @map("region")
+  cohortSize        Int      @default(0) @map("cohort_size")
+  sessionCount      Int      @default(0) @map("session_count")
+  completionRatePct Float    @default(0) @map("completion_rate_pct")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  grade Grade @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+
+  @@unique([date, gradeId, region], map: "grade_region_engagement_aggregates_date_grade_region_unique")
+  @@index([cohortSize], map: "grade_region_engagement_aggregates_cohort_size_idx")
+  @@index([date], map: "grade_region_engagement_aggregates_date_idx")
+  @@map("grade_region_engagement_aggregates")
+}

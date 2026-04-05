@@ -1,0 +1,10 @@
+
+> exam-prep-ethiopia@0.1.0 dev:backend
+> npm run dev --workspace=backend
+
+
+> backend@0.1.0 dev
+> nest start --watch
+
+[2J[3J[H[[90m3:47:19 PM[0m] Starting compilation in watch mode...
+

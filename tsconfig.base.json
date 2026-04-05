@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    /* --- Language & Output --- */
+    "target": "ES2022",
+    "module": "commonjs",
+    "lib": ["ES2022"],
+    "moduleResolution": "node",
+
+    /* --- Type Safety --- */
+    /* These options make TypeScript stricter, catching more bugs at compile time */
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+
+    /* --- Developer Experience --- */
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+
+    /* --- Monorepo Support --- */
+    /* Composite + incremental enable faster builds by only recompiling changed files */
+    "composite": true,
+    "incremental": true
+  },
+  "exclude": ["node_modules", "dist", "build", ".next", "coverage"]
+}

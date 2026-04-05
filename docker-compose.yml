@@ -1,0 +1,63 @@
+# =============================================================================
+# Docker Compose - Development Services
+# =============================================================================
+# This file defines the databases and services the app depends on.
+# Start everything:   docker compose up -d
+# Stop everything:    docker compose down
+# See logs:           docker compose logs -f
+# Reset databases:    docker compose down -v  (WARNING: deletes all data)
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL - Primary Database
+  # ---------------------------------------------------------------------------
+  # Stores all structured data: users, questions, subscriptions, etc.
+  # Data persists in a Docker volume so it survives container restarts.
+  # Accessible at localhost:5432 from your machine.
+  postgres:
+    image: postgres:16-alpine
+    container_name: exam-prep-postgres
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-exam_prep_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_this_to_a_strong_password}
+      POSTGRES_DB: ${POSTGRES_DB:-exam_prep_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-exam_prep_user} -d ${POSTGRES_DB:-exam_prep_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Redis - Cache & Leaderboards
+  # ---------------------------------------------------------------------------
+  # In-memory data store used for:
+  #   1. Leaderboard rankings (sorted sets - very fast ranking queries)
+  #   2. Caching frequently accessed data (subject lists, popular questions)
+  #   3. Rate limiting storage
+  # Accessible at localhost:6379 from your machine.
+  redis:
+    image: redis:7-alpine
+    container_name: exam-prep-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    command: redis-server --requirepass ${REDIS_PASSWORD:-exam_prep_redis_dev}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-exam_prep_redis_dev}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+# Named volumes persist data between container restarts.
+# To wipe all data: docker compose down -v
+volumes:
+  postgres_data:
+  redis_data:

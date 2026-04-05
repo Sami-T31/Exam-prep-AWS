@@ -1,0 +1,45 @@
+{
+  "common": {
+    "logOut": "Log out",
+    "dashboard": "Dashboard",
+    "retry": "Retry",
+    "close": "Close"
+  },
+  "language": {
+    "label": "Language",
+    "english": "English",
+    "amharic": "Amharic"
+  },
+  "dashboard": {
+    "welcomeBack": "Welcome back",
+    "overview": "Here's an overview of your preparation.",
+    "startMockExam": "Start Mock Exam",
+    "loadError": "Unable to load dashboard data right now. Please try again.",
+    "answeredToday": "Answered Today",
+    "overallAccuracy": "Overall Accuracy",
+    "currentStreak": "Current Streak",
+    "strongestSubject": "Strongest Subject",
+    "questionsLast24h": "Questions answered in the last 24h",
+    "acrossAllSubjects": "Across all subjects",
+    "consecutiveActiveDays": "Consecutive active days",
+    "highestAttemptVolume": "Highest attempt volume so far",
+    "noData": "No data"
+  },
+  "progress": {
+    "title": "Progress Dashboard",
+    "subtitle": "Track consistency, subject performance, and weak areas.",
+    "perSubjectProgress": "Per-Subject Progress",
+    "viewBreakdown": "View breakdown",
+    "attempts": "attempts",
+    "accuracy": "accuracy",
+    "subjectBreakdownTitle": "Accuracy Breakdown",
+    "correctVsIncorrect": "Correct vs Incorrect",
+    "correct": "correct",
+    "incorrect": "incorrect",
+    "noSubjectAttempts": "No subject attempts yet.",
+    "subjectBreakdownLoadError": "Unable to load subject breakdown right now.",
+    "noTopicAttempts": "No topic-level attempts yet for this subject.",
+    "grade": "Grade"
+  }
+}
+
