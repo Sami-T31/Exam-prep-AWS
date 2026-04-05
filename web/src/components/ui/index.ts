@@ -9,6 +9,6 @@ export { EmptyState } from './EmptyState';
 export { ThemeToggle } from './ThemeToggle';
 export { AnimatedCircularProgressBar } from './AnimatedCircularProgressBar';
 export { PillNav } from './PillNav';
-export { DropdownSelect } from './DropdownSelect';
+export { DropdownSelect, DropdownOption } from './DropdownSelect';
 export { BreadcrumbTrail } from './BreadcrumbTrail';
 export type { BreadcrumbTrailItem } from './BreadcrumbTrail';
