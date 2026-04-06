@@ -17,7 +17,6 @@ import { apiClient } from '@/lib/apiClient';
 import { trackFeatureEvent } from '@/lib/analyticsTracker';
 import { useAuthStore } from '@/stores/authStore';
 import {
-  Badge,
   BreadcrumbTrail,
   type BreadcrumbTrailItem,
   Button,
@@ -675,9 +674,6 @@ function PracticePageContent() {
               Question {currentIndex + 1} of {questions.length}
             </p>
             <div className="flex items-center gap-2">
-              <Badge variant={badgeVariant(currentQuestion.difficulty)}>
-                {currentQuestion.difficulty.toLowerCase()}
-              </Badge>
               <button
                 onClick={toggleBookmark}
                 disabled={bookmarkBusy}
@@ -733,9 +729,9 @@ function PracticePageContent() {
                   className={`rounded-2xl border px-4 py-3 text-left transition ${
                     isCurrentSubmitted
                       ? isCorrectOption
-                        ? 'border-[var(--accent-color)]/60 bg-[color-mix(in_srgb,var(--accent-color)_14%,white)] text-[var(--accent-strong)]'
+                        ? 'border-[var(--accent-color)]/40 bg-[color-mix(in_srgb,var(--accent-color)_10%,var(--surface-color))] text-[var(--accent-strong)]'
                         : isWrongSelected
-                          ? 'border-red-500/60 bg-red-50/70 text-red-800'
+                          ? 'border-red-500/30 bg-[color-mix(in_srgb,red_8%,var(--surface-color))] text-red-400'
                           : 'border-[var(--border-color)] bg-[var(--surface-color)] text-[var(--foreground)]'
                       : isSelected
                         ? 'border-[var(--accent-color)] bg-[color-mix(in_srgb,var(--accent-color)_14%,var(--surface-color))] text-[var(--foreground)] shadow-sm shadow-[color-mix(in_srgb,var(--accent-color)_24%,transparent)]'
@@ -773,8 +769,8 @@ function PracticePageContent() {
               padding="md"
               className={
                 answeredCurrentQuestion.isCorrect
-                  ? 'border-[var(--accent-color)]/50 bg-[color-mix(in_srgb,var(--accent-color)_12%,white)]'
-                  : 'border-red-500/50 bg-red-50/55'
+                  ? 'border-[var(--accent-color)]/30 bg-[color-mix(in_srgb,var(--accent-color)_8%,var(--surface-color))]'
+                  : 'border-red-500/25 bg-[color-mix(in_srgb,red_6%,var(--surface-color))]'
               }
             >
               <p className={`text-sm font-semibold `}>
@@ -797,14 +793,6 @@ function PracticePageContent() {
       )}
     </PracticePageShell>
   );
-}
-
-function badgeVariant(
-  difficulty: 'EASY' | 'MEDIUM' | 'HARD',
-): 'easy' | 'medium' | 'hard' {
-  if (difficulty === 'EASY') return 'easy';
-  if (difficulty === 'MEDIUM') return 'medium';
-  return 'hard';
 }
 
 function SummaryStat({ title, value }: { title: string; value: string }) {

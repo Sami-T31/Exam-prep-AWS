@@ -13,6 +13,7 @@ import {
   Button,
   Card,
   EmptyState,
+  Modal,
   Skeleton,
 } from '@/components/ui';
 
@@ -73,6 +74,7 @@ export default function MockExamReviewPage() {
   const [review, setReview] = useState<ReviewResponse | null>(null);
   const [filter, setFilter] = useState<FilterMode>('all');
   const [flaggedQuestionIds, setFlaggedQuestionIds] = useState<string[]>([]);
+  const [detailQuestion, setDetailQuestion] = useState<ReviewQuestion | null>(null);
 
   useEffect(() => {
     async function loadReview() {
@@ -233,39 +235,104 @@ export default function MockExamReviewPage() {
               const correctOption = question.options.find((option) => option.isCorrect);
 
               return (
-                <Card key={question.questionId} padding="lg">
-                  <div className="mb-3 flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-[var(--foreground)]">
-                      Q{index + 1}. {question.questionText}
-                    </p>
-                    <div className="flex gap-2">
-                      {flaggedQuestionIds.includes(question.questionId) && <Badge variant="warning">Flagged</Badge>}
-                      <Badge variant={question.isCorrect ? 'success' : 'danger'}>
-                        {question.isCorrect ? 'Correct' : 'Incorrect'}
-                      </Badge>
+                <button
+                  key={question.questionId}
+                  type="button"
+                  onClick={() => setDetailQuestion(question)}
+                  className="block w-full text-left"
+                >
+                  <Card padding="lg" hoverable>
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-[var(--foreground)]">
+                        Q{index + 1}. {question.questionText}
+                      </p>
+                      <div className="flex shrink-0 gap-2">
+                        {flaggedQuestionIds.includes(question.questionId) && <Badge variant="warning">Flagged</Badge>}
+                        <Badge variant={question.isCorrect ? 'success' : 'danger'}>
+                          {question.isCorrect ? 'Correct' : 'Incorrect'}
+                        </Badge>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="space-y-2 text-sm">
-                    <p className="text-[var(--foreground)]/75">
-                      <span className="font-semibold">Your answer:</span>{' '}
-                      {selectedOption ? `${selectedOption.optionLabel}. ${selectedOption.optionText}` : 'Not answered'}
-                    </p>
-                    <p className="text-[var(--foreground)]/75">
-                      <span className="font-semibold">Correct answer:</span>{' '}
-                      {correctOption ? `${correctOption.optionLabel}. ${correctOption.optionText}` : 'Unavailable'}
-                    </p>
-                    <p className="text-[var(--foreground)]/75">
-                      <span className="font-semibold">Explanation:</span>{' '}
-                      {question.explanation || 'No explanation was provided for this question.'}
-                    </p>
-                  </div>
-                </Card>
+                    <div className="space-y-1 text-sm">
+                      <p className="text-[var(--foreground)]/75">
+                        <span className="font-semibold">Your answer:</span>{' '}
+                        {selectedOption ? `${selectedOption.optionLabel}. ${selectedOption.optionText}` : 'Not answered'}
+                      </p>
+                      <p className="text-[var(--foreground)]/75">
+                        <span className="font-semibold">Correct answer:</span>{' '}
+                        {correctOption ? `${correctOption.optionLabel}. ${correctOption.optionText}` : 'Unavailable'}
+                      </p>
+                    </div>
+                    <p className="mt-2 text-xs text-[var(--accent-strong)]">Click to view explanation</p>
+                  </Card>
+                </button>
               );
             })}
           </div>
         )}
       </main>
+
+      <Modal
+        isOpen={!!detailQuestion}
+        onClose={() => setDetailQuestion(null)}
+        title="Question Explanation"
+        size="lg"
+      >
+        {detailQuestion && (
+          <div>
+            <p className="text-sm font-semibold leading-relaxed text-[var(--foreground)]">
+              {detailQuestion.questionText}
+            </p>
+
+            <div className="mt-4 space-y-2">
+              {detailQuestion.options.map((option) => {
+                const isUserAnswer = option.id === detailQuestion.selectedOptionId;
+                const isCorrect = option.isCorrect;
+                let optionClass = 'border-[var(--border-color)] bg-[var(--surface-color)]';
+                if (isCorrect) {
+                  optionClass = 'border-[var(--accent-color)]/40 bg-[color-mix(in_srgb,var(--accent-color)_10%,var(--surface-color))]';
+                } else if (isUserAnswer) {
+                  optionClass = 'border-red-500/30 bg-[color-mix(in_srgb,red_8%,var(--surface-color))]';
+                }
+
+                return (
+                  <div
+                    key={option.id}
+                    className={`rounded-xl border px-4 py-3 text-sm ${optionClass}`}
+                  >
+                    <span className="mr-2 font-semibold text-[var(--foreground)]/65">
+                      {option.optionLabel}.
+                    </span>
+                    <span className="text-[var(--foreground)]">{option.optionText}</span>
+                    {isCorrect && (
+                      <span className="ml-2 text-xs font-semibold text-[var(--accent-strong)]">✓ Correct</span>
+                    )}
+                    {isUserAnswer && !isCorrect && (
+                      <span className="ml-2 text-xs font-semibold text-red-400">✗ Your answer</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-5 rounded-xl border border-[var(--border-color)] bg-[var(--surface-muted)] p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--foreground)]/65">
+                Explanation
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-[var(--foreground)]/80">
+                {detailQuestion.explanation || 'No explanation was provided for this question.'}
+              </p>
+            </div>
+
+            <div className="mt-5 flex justify-end">
+              <Button variant="outline" size="sm" onClick={() => setDetailQuestion(null)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
