@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { apiClient } from '@/lib/apiClient';
 
 interface OnboardingProfile {
   hasCompletedOnboarding: boolean;
@@ -12,7 +13,7 @@ interface OnboardingState extends OnboardingProfile {
   _ready: boolean;
   _userId: string | null;
 
-  hydrate: (userId: string) => void;
+  hydrate: (userId: string, serverOnboardingCompleted: boolean) => void;
   setGrade: (grade: number) => void;
   setPrioritySubjects: (subjects: string[]) => void;
   setDailyGoal: (goal: number) => void;
@@ -55,14 +56,35 @@ function snapshot(state: OnboardingState): OnboardingProfile {
   };
 }
 
+function notifyServer() {
+  apiClient.patch('/auth/onboarding-complete').catch(() => {
+    // Best-effort; localStorage already updated so the user isn't blocked
+  });
+}
+
 export const useOnboardingStore = create<OnboardingState>((set, get) => ({
   ...DEFAULTS,
   _ready: false,
   _userId: null,
 
-  hydrate: (userId) => {
-    if (get()._userId === userId) return;
-    const profile = readProfile(userId);
+  hydrate: (userId, serverOnboardingCompleted) => {
+    const current = get();
+
+    if (current._userId === userId && !serverOnboardingCompleted) return;
+    if (current._userId === userId && current.hasCompletedOnboarding) return;
+
+    const local = readProfile(userId);
+    const hasCompleted = serverOnboardingCompleted || local.hasCompletedOnboarding;
+
+    const profile: OnboardingProfile = {
+      ...local,
+      hasCompletedOnboarding: hasCompleted,
+    };
+
+    if (serverOnboardingCompleted && !local.hasCompletedOnboarding) {
+      persistProfile(userId, profile);
+    }
+
     set({ ...profile, _ready: true, _userId: userId });
   },
 
@@ -88,6 +110,7 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
     set({ hasCompletedOnboarding: true });
     const s = get();
     persistProfile(s._userId, { ...snapshot(s), hasCompletedOnboarding: true });
+    notifyServer();
   },
 
   applyDefaults: () => {
@@ -99,5 +122,6 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
     };
     set(defaults);
     persistProfile(get()._userId, defaults);
+    notifyServer();
   },
 }));

@@ -41,8 +41,8 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(0);
 
   useEffect(() => {
-    if (user?.id) hydrate(user.id);
-  }, [user?.id, hydrate]);
+    if (user?.id) hydrate(user.id, user.onboardingCompleted ?? false);
+  }, [user?.id, user?.onboardingCompleted, hydrate]);
 
   const canAdvance = useMemo(() => {
     if (step === 0) return grade !== null;

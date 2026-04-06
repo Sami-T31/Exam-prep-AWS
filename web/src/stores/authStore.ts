@@ -20,6 +20,7 @@ interface User {
   name: string;
   email: string;
   role: string;
+  onboardingCompleted: boolean;
 }
 
 interface AuthState {
@@ -79,7 +80,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const payload = JSON.parse(atob(token.split('.')[1]!));
       set({
-        user: { id: payload.sub, name: '', email: '', role: payload.role },
+        user: { id: payload.sub, name: '', email: '', role: payload.role, onboardingCompleted: false },
         isAuthenticated: true,
         isLoading: false,
       });

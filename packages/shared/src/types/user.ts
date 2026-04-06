@@ -11,6 +11,7 @@ export interface User {
   email: string;
   phone: string;
   role: UserRole;
+  onboardingCompleted: boolean;
   createdAt: string;
   updatedAt: string;
 }

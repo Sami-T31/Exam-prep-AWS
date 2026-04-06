@@ -112,16 +112,17 @@ enum AppPlatform {
 // ---------------------------------------------------------------------------
 
 model User {
-  id           String    @id @default(uuid()) @map("id")
-  name         String    @map("name")
-  email        String    @unique @map("email")
-  phone        String    @unique @map("phone")
-  passwordHash String    @map("password_hash")
-  role         UserRole  @default(STUDENT) @map("role")
-  region       String    @default("UNKNOWN") @map("region")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
-  deletedAt    DateTime? @map("deleted_at")
+  id                  String    @id @default(uuid()) @map("id")
+  name                String    @map("name")
+  email               String    @unique @map("email")
+  phone               String    @unique @map("phone")
+  passwordHash        String    @map("password_hash")
+  role                UserRole  @default(STUDENT) @map("role")
+  region              String    @default("UNKNOWN") @map("region")
+  onboardingCompleted Boolean   @default(false) @map("onboarding_completed")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  deletedAt           DateTime? @map("deleted_at")
 
   consent             Consent?
   appSessions         AppSession[]

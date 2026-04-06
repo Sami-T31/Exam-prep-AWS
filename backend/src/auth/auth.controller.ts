@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Patch,
   Post,
 } from '@nestjs/common';
 import {
@@ -150,6 +151,23 @@ export class AuthController {
   async resetPassword(@Body() dto: ResetPasswordDto) {
     await this.authService.resetPassword(dto.token, dto.password);
     return { message: 'Password has been reset successfully. Please log in.' };
+  }
+
+  /**
+   * PATCH /api/v1/auth/onboarding-complete
+   *
+   * Marks the current user's onboarding as completed.
+   * Idempotent — calling it multiple times is safe.
+   */
+  @Patch('onboarding-complete')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Mark onboarding as completed (requires auth)' })
+  @ApiOkResponse({ description: 'Onboarding marked as completed' })
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  async completeOnboarding(@CurrentUser() user: RequestUser) {
+    await this.authService.completeOnboarding(user.id);
+    return { message: 'Onboarding completed' };
   }
 
   /**

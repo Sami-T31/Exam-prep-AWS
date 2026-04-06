@@ -25,6 +25,7 @@ export interface AuthResult {
     email: string;
     phone: string;
     role: UserRole;
+    onboardingCompleted: boolean;
     createdAt: Date;
     updatedAt: Date;
   };
@@ -123,6 +124,7 @@ export class AuthService {
         email: user.email,
         phone: user.phone,
         role: user.role,
+        onboardingCompleted: user.onboardingCompleted,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
@@ -177,6 +179,7 @@ export class AuthService {
         email: user.email,
         phone: user.phone,
         role: user.role,
+        onboardingCompleted: user.onboardingCompleted,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
@@ -449,6 +452,7 @@ export class AuthService {
         email: true,
         phone: true,
         role: true,
+        onboardingCompleted: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -459,6 +463,13 @@ export class AuthService {
     }
 
     return user;
+  }
+
+  async completeOnboarding(userId: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { onboardingCompleted: true },
+    });
   }
 
   // =========================================================================

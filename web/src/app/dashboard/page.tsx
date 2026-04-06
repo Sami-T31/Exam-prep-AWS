@@ -53,8 +53,8 @@ export default function DashboardPage() {
   );
 
   useEffect(() => {
-    if (user?.id) hydrate(user.id);
-  }, [user?.id, hydrate]);
+    if (user?.id) hydrate(user.id, user.onboardingCompleted ?? false);
+  }, [user?.id, user?.onboardingCompleted, hydrate]);
 
   useEffect(() => {
     if (onboardingReady && !hasCompletedOnboarding) {
