@@ -17,7 +17,6 @@ import {
 } from '@/lib/mockExamSession';
 import { useAuthStore } from '@/stores/authStore';
 import {
-  Badge,
   BreadcrumbTrail,
   Button,
   Card,
@@ -398,18 +397,7 @@ function MockExamAttemptContent() {
 
         <div className="space-y-4">
           <Card padding="lg">
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <Badge
-                variant={
-                  currentQuestion.difficulty === 'EASY'
-                    ? 'easy'
-                    : currentQuestion.difficulty === 'MEDIUM'
-                      ? 'medium'
-                      : 'hard'
-                }
-              >
-                {currentQuestion.difficulty.toLowerCase()}
-              </Badge>
+            <div className="mb-3 flex items-center justify-end gap-2">
               <button
                 onClick={() => toggleFlag(currentQuestion.questionId)}
                 className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
