@@ -22,6 +22,7 @@ import {
   Button,
   Card,
   EmptyState,
+  Modal,
   PillNav,
   ProgressBar,
   Skeleton,
@@ -133,6 +134,7 @@ function PracticePageContent() {
     null,
   );
   const [isContentLocked, setIsContentLocked] = useState(false);
+  const [detailAnswer, setDetailAnswer] = useState<AnsweredQuestion | null>(null);
 
   const sessionStartedAtRef = useRef<number>(Date.now());
 
@@ -174,10 +176,7 @@ function PracticePageContent() {
   const hasCompletedSession =
     questions.length > 0 && currentIndex >= questions.length;
 
-  const incorrectAnswers = useMemo(
-    () => answeredQuestions.filter((answer) => !answer.isCorrect),
-    [answeredQuestions],
-  );
+
 
   const bookmarkId = currentQuestion
     ? bookmarksByQuestionId[currentQuestion.id]
@@ -611,40 +610,34 @@ function PracticePageContent() {
 
           <div className="mt-6">
             <h3 className="text-sm font-semibold text-[var(--foreground)]">
-              Review incorrect answers
+              Review answers
             </h3>
-            {incorrectAnswers.length === 0 ? (
-              <p className="mt-2 text-sm text-[var(--accent-strong)]">
-                Great work. You got every question correct.
-              </p>
-            ) : (
-              <div className="mt-3 space-y-3">
-                {incorrectAnswers.map((answer) => {
-                  const question = questions.find(
-                    (item) => item.id === answer.questionId,
-                  );
-                  return (
-                    <div
-                      key={answer.questionId}
-                      className="rounded-2xl border border-[var(--border-color)] p-3"
-                    >
-                      <p className="text-sm font-semibold text-[var(--foreground)]">
-                        {question?.questionText}
-                      </p>
-                      <p className="mt-1 text-xs text-red-500">
-                        Your answer: {answer.selectedOptionLabel} | Correct:{' '}
-                        {answer.correctOptionLabel}
-                      </p>
-                      {answer.explanation && (
-                        <p className="mt-2 text-sm text-[var(--foreground)]/75">
-                          {answer.explanation}
-                        </p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            <div className="mt-3 space-y-3">
+              {answeredQuestions.map((answer) => {
+                const question = questions.find(
+                  (item) => item.id === answer.questionId,
+                );
+                return (
+                  <button
+                    key={answer.questionId}
+                    type="button"
+                    onClick={() => setDetailAnswer(answer)}
+                    className="block w-full rounded-2xl border border-[var(--border-color)] p-3 text-left transition-colors hover:border-[var(--foreground)]/25"
+                  >
+                    <p className="text-sm font-semibold text-[var(--foreground)]">
+                      {question?.questionText}
+                    </p>
+                    <p className={`mt-1 text-xs ${answer.isCorrect ? 'text-[var(--accent-strong)]' : 'text-red-500'}`}>
+                      Your answer: {answer.selectedOptionLabel} | Correct:{' '}
+                      {answer.correctOptionLabel}
+                    </p>
+                    <p className="mt-1 text-xs text-[var(--foreground)]/50">
+                      Click to view explanation
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div className="mt-6 flex flex-wrap gap-2">
@@ -666,6 +659,71 @@ function PracticePageContent() {
           </p>
         </Card>
       )}
+
+      <Modal
+        isOpen={!!detailAnswer}
+        onClose={() => setDetailAnswer(null)}
+        title="Question Explanation"
+        size="lg"
+      >
+        {detailAnswer && (() => {
+          const question = questions.find((q) => q.id === detailAnswer.questionId);
+          if (!question) return null;
+          return (
+            <div>
+              <p className="text-sm font-semibold leading-relaxed text-[var(--foreground)]">
+                {question.questionText}
+              </p>
+
+              <div className="mt-4 space-y-2">
+                {question.options.map((option) => {
+                  const isUserAnswer = option.id === detailAnswer.selectedOptionId;
+                  const isCorrect = option.id === detailAnswer.correctOptionId;
+                  let optionClass = 'border-[var(--border-color)] bg-[var(--surface-color)]';
+                  if (isCorrect) {
+                    optionClass = 'border-[var(--accent-color)]/40 bg-[color-mix(in_srgb,var(--accent-color)_10%,var(--surface-color))]';
+                  } else if (isUserAnswer) {
+                    optionClass = 'border-red-500/30 bg-[color-mix(in_srgb,red_8%,var(--surface-color))]';
+                  }
+
+                  return (
+                    <div
+                      key={option.id}
+                      className={`rounded-xl border px-4 py-3 text-sm ${optionClass}`}
+                    >
+                      <span className="mr-2 font-semibold text-[var(--foreground)]/65">
+                        {option.optionLabel}.
+                      </span>
+                      <span className="text-[var(--foreground)]">{option.optionText}</span>
+                      {isCorrect && (
+                        <span className="ml-2 text-xs font-semibold text-[var(--accent-strong)]">&#10003; Correct</span>
+                      )}
+                      {isUserAnswer && !isCorrect && (
+                        <span className="ml-2 text-xs font-semibold text-red-400">&#10007; Your answer</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="mt-5 rounded-xl border border-[var(--border-color)] bg-[var(--surface-muted)] p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--foreground)]/65">
+                  Explanation
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--foreground)]/80">
+                  {detailAnswer.explanation || 'No explanation was provided for this question.'}
+                </p>
+              </div>
+
+              <div className="mt-5 flex justify-end">
+                <Button variant="outline" size="sm" onClick={() => setDetailAnswer(null)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          );
+        })()}
+      </Modal>
 
       {!isLoading && !hasCompletedSession && currentQuestion && (
         <div className="mt-6 space-y-4">
