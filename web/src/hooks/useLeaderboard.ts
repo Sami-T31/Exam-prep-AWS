@@ -2,21 +2,46 @@ import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/apiClient';
 import { queryKeys } from './queryKeys';
 
-interface LeaderboardEntry {
+export type LeaderboardTier = 'bronze' | 'silver' | 'gold';
+
+export interface LeaderboardBadge {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+}
+
+export interface LeaderboardReward {
+  type: 'badge' | 'streak_boost';
+  badge?: LeaderboardBadge;
+  streakBoostDays?: number;
+}
+
+export interface LeaderboardEntry {
   rank: number;
   userId: string;
   name: string;
   score: number;
-  accuracy: number;
+  tier: LeaderboardTier;
+  rankChange: number;
+  scoreChange: number;
+  streak: number;
+  badges: LeaderboardBadge[];
 }
 
-interface LeaderboardResponse {
+export interface LeaderboardResponse {
   period: string;
   subjectId: number | null;
   entries: LeaderboardEntry[];
   currentUser: {
     rank: number | null;
     score: number;
+    tier: LeaderboardTier;
+    rankChange: number;
+    scoreChange: number;
+    streak: number;
+    badges: LeaderboardBadge[];
+    rewards: LeaderboardReward[];
   };
 }
 

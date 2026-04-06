@@ -30,6 +30,7 @@ const publicRoutes = new Set([
   '/register',
   '/forgot-password',
   '/reset-password',
+  '/onboarding',
 ]);
 
 const navItemsDualTier: (NavItemType & { icon: FC<{ className?: string }> })[] =
@@ -95,7 +96,7 @@ export function AppNavigationLayout({
 
   async function handleLogout() {
     await logout();
-    router.push('/login');
+    window.location.href = '/login?fromLogout=1';
   }
 
   return (

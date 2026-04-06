@@ -31,9 +31,11 @@ function LoginPageContent() {
   const [submitError, setSubmitError] = useState('');
 
   const callbackUrl = searchParams.get('callbackUrl');
-  const safeCallbackUrl = callbackUrl?.startsWith('/')
-    ? callbackUrl
-    : '/dashboard';
+  const isFromLogout = searchParams.get('fromLogout') === '1';
+  const safeCallbackUrl =
+    !isFromLogout && callbackUrl?.startsWith('/')
+      ? callbackUrl
+      : '/dashboard';
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

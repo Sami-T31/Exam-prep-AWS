@@ -35,8 +35,8 @@ export function SidebarNavigationSlim({
   ];
 
   return (
-    <aside className="h-screen w-72 border-r border-[var(--border-color)] bg-[linear-gradient(180deg,color-mix(in_srgb,var(--surface-color)_96%,white),color-mix(in_srgb,var(--surface-muted)_58%,var(--surface-color)))] px-4 py-5">
-      <div className="mb-5 flex items-center gap-2.5 px-1">
+    <aside className="flex h-screen w-72 flex-col border-r border-[var(--border-color)] bg-[linear-gradient(180deg,color-mix(in_srgb,var(--surface-color)_96%,white),color-mix(in_srgb,var(--surface-muted)_58%,var(--surface-color)))] px-4 py-5">
+      <div className="mb-5 flex shrink-0 items-center gap-2.5 px-1">
         <div className="brand-mark flex h-9 w-9 items-center justify-center rounded-xl">
           <span className="text-base font-bold text-white">e</span>
         </div>
@@ -46,7 +46,7 @@ export function SidebarNavigationSlim({
         </div>
       </div>
 
-      <nav className="space-y-2 overflow-y-auto pr-1">
+      <nav className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
         {items.map((item) => {
           const Icon = item.icon;
           const sectionActive = isActive(pathname, item.href);
@@ -122,7 +122,7 @@ export function SidebarNavigationSlim({
         })}
       </nav>
 
-      <div className="mt-4 space-y-1.5 border-t border-[var(--border-color)]/70 pt-4">
+      <div className="mt-4 shrink-0 space-y-1.5 border-t border-[var(--border-color)]/70 pt-4">
         {footerItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(pathname, item.href);

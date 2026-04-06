@@ -5,6 +5,7 @@ import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '@/lib/i18n';
 import { useAuthStore } from '@/stores/authStore';
+import { useOnboardingStore } from '@/stores/onboardingStore';
 import { useOverallStats, useSubjectStats, useMockExams } from '@/hooks';
 import TextType from '@/components/visual/TextType';
 import AnimatedCounter from '@/components/visual/AnimatedCounter';
@@ -35,31 +36,55 @@ const dashboardNavItems = [
   { label: 'Subjects', href: '/subjects', matchPrefixes: ['/subjects'] },
   { label: 'Progress', href: '/progress', matchPrefixes: ['/progress'] },
   { label: 'Knowledge Map', href: '/knowledge-map', matchPrefixes: ['/knowledge-map'] },
-  { label: 'Bookmarks', href: '/bookmarks', matchPrefixes: ['/bookmarks'] },
   {
     label: 'Leaderboard',
     href: '/leaderboard',
     matchPrefixes: ['/leaderboard'],
   },
-  { label: 'Subscribe', href: '/subscribe', matchPrefixes: ['/subscribe'] },
-  {
-    label: 'Subscription Status',
-    href: '/account/subscription',
-    matchPrefixes: ['/account/subscription'],
-  },
-  {
-    label: 'Privacy & Data',
-    href: '/account/privacy',
-    matchPrefixes: ['/account/privacy'],
-  },
 ] as const;
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, logout } = useAuthStore();
+  const { user, logout, isLoading: isAuthLoading } = useAuthStore();
   const { t } = useI18n();
+  const { hasCompletedOnboarding, _ready: onboardingReady, hydrate } = useOnboardingStore();
   const [continueState, setContinueState] = useState<ContinueState | null>(
     null,
+  );
+
+  useEffect(() => {
+    if (user?.id) hydrate(user.id);
+  }, [user?.id, hydrate]);
+
+  useEffect(() => {
+    if (onboardingReady && !hasCompletedOnboarding) {
+      router.replace('/onboarding');
+    }
+  }, [onboardingReady, hasCompletedOnboarding, router]);
+
+  const shouldShowDashboard = onboardingReady && hasCompletedOnboarding;
+
+  const {
+    data: overallStats,
+    isLoading: statsLoading,
+    error: statsError,
+    refetch,
+  } = useOverallStats();
+  const { data: subjectStats = [] } = useSubjectStats();
+  const { data: allMockExams = [] } = useMockExams();
+
+  const activeSubjectStats = useMemo(
+    () => subjectStats.filter((subject) => subject.totalAttempts > 0),
+    [subjectStats],
+  );
+
+  const welcomeMessages = useMemo(
+    () => [
+      'Your dashboard is ready. Keep building your streak one chapter at a time.',
+      'Focus on one weak area today and convert it into a strength.',
+      'Consistency beats intensity. A few strong sessions today goes a long way.',
+    ],
+    [],
   );
 
   useEffect(() => {
@@ -79,19 +104,9 @@ export default function DashboardPage() {
     };
   }, []);
 
-  const {
-    data: overallStats,
-    isLoading: statsLoading,
-    error: statsError,
-    refetch,
-  } = useOverallStats();
-  const { data: subjectStats = [] } = useSubjectStats();
-  const { data: allMockExams = [] } = useMockExams();
-
-  const activeSubjectStats = useMemo(
-    () => subjectStats.filter((subject) => subject.totalAttempts > 0),
-    [subjectStats],
-  );
+  if (isAuthLoading || !shouldShowDashboard) {
+    return null;
+  }
 
   const isLoading = statsLoading;
   const error = statsError
@@ -103,14 +118,6 @@ export default function DashboardPage() {
   const mockExams = allMockExams.slice(0, 3);
   const welcomeName = user?.name?.trim() || 'Student';
   const welcomeHeading = `${t('dashboard.welcomeBack', 'Welcome back')}, ${welcomeName}`;
-  const welcomeMessages = useMemo(
-    () => [
-      'Your dashboard is ready. Keep building your streak one chapter at a time.',
-      'Focus on one weak area today and convert it into a strength.',
-      'Consistency beats intensity. A few strong sessions today goes a long way.',
-    ],
-    [],
-  );
 
   return (
     <div className="emerald-preview min-h-screen bg-[var(--background)]">
@@ -125,7 +132,7 @@ export default function DashboardPage() {
           <button
             onClick={async () => {
               await logout();
-              router.push('/login');
+              window.location.href = '/login?fromLogout=1';
             }}
             className="rounded-full px-5 py-2.5 text-sm font-medium text-amber-50 transition-colors hover:text-white"
           >
@@ -218,7 +225,7 @@ export default function DashboardPage() {
               isLoading ? '--' : (
                 <AnimatedCounter
                   value={overallStats?.currentStreak ?? 0}
-                  suffix=" days"
+                  suffix={` ${(overallStats?.currentStreak ?? 0) === 1 ? 'day' : 'days'}`}
                 />
               )
             }

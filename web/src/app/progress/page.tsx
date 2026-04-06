@@ -577,7 +577,7 @@ export default function ProgressPage() {
           <button
             onClick={async () => {
               await logout();
-              router.push('/login');
+              window.location.href = '/login?fromLogout=1';
             }}
             className="rounded-full px-5 py-2.5 text-sm font-medium text-amber-50 transition-colors hover:text-white"
           >
@@ -628,7 +628,7 @@ export default function ProgressPage() {
           />
           <StatCard
             title="Current Streak"
-            value={`${overallStats?.currentStreak ?? 0} days`}
+            value={`${overallStats?.currentStreak ?? 0} ${(overallStats?.currentStreak ?? 0) === 1 ? 'day' : 'days'}`}
             hint="Consecutive active days"
           />
         </div>
