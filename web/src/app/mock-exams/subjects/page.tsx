@@ -3,9 +3,24 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 import { apiClient } from '@/lib/apiClient';
+import { clearSession, MockExamQuestion, MockExamSessionState, saveFlaggedQuestionIds, saveSession } from '@/lib/mockExamSession';
 import { useAuthStore } from '@/stores/authStore';
-import { BreadcrumbTrail, Card, EmptyState, Skeleton } from '@/components/ui';
+import {
+  BreadcrumbTrail,
+  Button,
+  Card,
+  EmptyState,
+  Modal,
+  PillNav,
+  Skeleton,
+} from '@/components/ui';
+
+interface Grade {
+  id: number;
+  gradeNumber: number;
+}
 
 interface MockExam {
   id: string;
@@ -20,6 +35,20 @@ interface SubjectCardItem {
   subjectId: number;
   subjectName: string;
   examCount: number;
+  exams: MockExam[];
+}
+
+interface StartExamResponse {
+  attemptId: string;
+  exam: {
+    id: string;
+    title: string;
+    durationMinutes: number;
+    subject: { id: number; name: string };
+    grade: { id: number; gradeNumber: number };
+  };
+  startedAt: string;
+  questions: MockExamQuestion[];
 }
 
 export default function MockExamSubjectsPage() {
@@ -28,32 +57,67 @@ export default function MockExamSubjectsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [mockExams, setMockExams] = useState<MockExam[]>([]);
+  const [grades, setGrades] = useState<Grade[]>([]);
+  const [selectedGradeId, setSelectedGradeId] = useState<number | null>(null);
+  const [isStarting, setIsStarting] = useState(false);
+  const [confirmExam, setConfirmExam] = useState<MockExam | null>(null);
+
+  const filteredExams = useMemo(
+    () => selectedGradeId ? mockExams.filter((e) => e.grade.id === selectedGradeId) : mockExams,
+    [mockExams, selectedGradeId],
+  );
 
   const subjectCards = useMemo<SubjectCardItem[]>(() => {
     const subjectMap = new Map<number, SubjectCardItem>();
-    for (const exam of mockExams) {
+    for (const exam of filteredExams) {
       const existing = subjectMap.get(exam.subject.id);
       if (existing) {
         existing.examCount += 1;
+        existing.exams.push(exam);
       } else {
         subjectMap.set(exam.subject.id, {
           subjectId: exam.subject.id,
           subjectName: exam.subject.name,
           examCount: 1,
+          exams: [exam],
         });
       }
     }
     return Array.from(subjectMap.values()).sort((a, b) =>
       a.subjectName.localeCompare(b.subjectName),
     );
-  }, [mockExams]);
+  }, [filteredExams]);
+
+  const gradePillItems = useMemo(() => {
+    const items = [
+      {
+        key: 'all',
+        label: 'All Grades',
+        active: selectedGradeId === null,
+        onClick: () => setSelectedGradeId(null),
+      },
+    ];
+    for (const g of grades) {
+      items.push({
+        key: String(g.id),
+        label: `Grade ${g.gradeNumber}`,
+        active: selectedGradeId === g.id,
+        onClick: () => setSelectedGradeId(g.id),
+      });
+    }
+    return items;
+  }, [grades, selectedGradeId]);
 
   async function loadData() {
     setIsLoading(true);
     setError('');
     try {
-      const response = await apiClient.get<MockExam[]>('/mock-exams');
-      setMockExams(response.data);
+      const [examsRes, gradesRes] = await Promise.all([
+        apiClient.get<MockExam[]>('/mock-exams'),
+        apiClient.get<Grade[]>('/grades'),
+      ]);
+      setMockExams(examsRes.data);
+      setGrades(gradesRes.data);
     } catch {
       setError('Unable to load mock exam subjects right now.');
     } finally {
@@ -64,6 +128,48 @@ export default function MockExamSubjectsPage() {
   useEffect(() => {
     void loadData();
   }, []);
+
+  async function startExam(exam: MockExam) {
+    setIsStarting(true);
+    try {
+      const response = await apiClient.post<StartExamResponse>(`/mock-exams/${exam.id}/start`);
+      const data = response.data;
+
+      const initialState: MockExamSessionState = {
+        attemptId: data.attemptId,
+        mockExamId: data.exam.id,
+        examTitle: data.exam.title,
+        durationMinutes: data.exam.durationMinutes,
+        startedAt: data.startedAt,
+        questions: data.questions,
+        answersByQuestionId: {},
+        flaggedQuestionIds: [],
+        submitted: false,
+      };
+
+      clearSession(data.attemptId);
+      saveSession(initialState);
+      saveFlaggedQuestionIds(data.attemptId, []);
+
+      router.push(`/mock-exams/${exam.id}/attempt?attemptId=${data.attemptId}`);
+    } catch {
+      toast.error('Unable to start this mock exam right now.');
+    } finally {
+      setIsStarting(false);
+      setConfirmExam(null);
+    }
+  }
+
+  function handleSubjectClick(subject: SubjectCardItem) {
+    if (selectedGradeId !== null) {
+      const exam = subject.exams[0];
+      if (exam) {
+        setConfirmExam(exam);
+        return;
+      }
+    }
+    router.push(`/mock-exams/subjects/${subject.subjectId}/grades`);
+  }
 
   return (
     <div className="min-h-screen bg-[var(--background)] page-gradient">
@@ -102,8 +208,13 @@ export default function MockExamSubjectsPage() {
             Choose a Mock Exam Subject
           </h1>
           <p className="mt-1 text-sm text-[var(--foreground)]/70">
-            Start by selecting the subject you want to test.
+            {selectedGradeId
+              ? 'Click a subject to start the exam directly.'
+              : 'Filter by grade, or click a subject to pick a grade.'}
           </p>
+          {!isLoading && grades.length > 0 && (
+            <PillNav items={gradePillItems} size="sm" className="mt-4" />
+          )}
         </div>
 
         {error && (
@@ -125,16 +236,28 @@ export default function MockExamSubjectsPage() {
             <div className="col-span-full">
               <EmptyState
                 title="No mock exams available"
-                description="An admin needs to publish mock exams before timed practice can begin."
+                description={
+                  selectedGradeId
+                    ? 'No exams for this grade. Try another grade or view all.'
+                    : 'An admin needs to publish mock exams before timed practice can begin.'
+                }
+                action={
+                  selectedGradeId ? (
+                    <Button variant="outline" size="sm" onClick={() => setSelectedGradeId(null)}>
+                      Show all grades
+                    </Button>
+                  ) : undefined
+                }
               />
             </div>
           )}
 
           {subjectCards.map((subject) => (
-            <Link
+            <button
               key={subject.subjectId}
-              href={`/mock-exams/subjects/${subject.subjectId}/grades`}
-              className="block"
+              type="button"
+              onClick={() => handleSubjectClick(subject)}
+              className="block w-full text-left"
             >
               <Card padding="lg" hoverable className="h-full">
                 <p className="text-xs uppercase tracking-wide text-[var(--foreground)]/65">
@@ -148,10 +271,37 @@ export default function MockExamSubjectsPage() {
                   {subject.examCount === 1 ? '' : 's'}
                 </p>
               </Card>
-            </Link>
+            </button>
           ))}
         </section>
       </main>
+
+      <Modal
+        isOpen={!!confirmExam}
+        onClose={() => (isStarting ? undefined : setConfirmExam(null))}
+        title="Start Mock Exam"
+      >
+        {confirmExam && (
+          <div>
+            <p className="text-sm text-[var(--foreground)]/75">
+              You are about to start <span className="font-semibold">{confirmExam.title}</span>.
+            </p>
+            <ul className="mt-4 list-disc space-y-1 pl-5 text-sm text-[var(--foreground)]/75">
+              <li>Time limit: {confirmExam.durationMinutes} minutes</li>
+              <li>You can navigate between questions before final submit</li>
+              <li>Exam auto-submits when timer reaches zero</li>
+            </ul>
+            <div className="mt-5 flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setConfirmExam(null)} disabled={isStarting}>
+                Cancel
+              </Button>
+              <Button onClick={() => startExam(confirmExam)} isLoading={isStarting}>
+                Start now
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

@@ -34,6 +34,7 @@ const dashboardNavItems = [
   },
   { label: 'Subjects', href: '/subjects', matchPrefixes: ['/subjects'] },
   { label: 'Progress', href: '/progress', matchPrefixes: ['/progress'] },
+  { label: 'Knowledge Map', href: '/knowledge-map', matchPrefixes: ['/knowledge-map'] },
   { label: 'Bookmarks', href: '/bookmarks', matchPrefixes: ['/bookmarks'] },
   {
     label: 'Leaderboard',
