@@ -171,6 +171,22 @@ export class AuthController {
   }
 
   /**
+   * PATCH /api/v1/auth/onboarding
+   *
+   * Alias for onboarding-complete — used by the mobile app.
+   */
+  @Patch('onboarding')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Mark onboarding as completed (mobile alias)' })
+  @ApiOkResponse({ description: 'Onboarding marked as completed' })
+  @ApiUnauthorizedResponse({ description: 'Not authenticated' })
+  async completeOnboardingAlias(@CurrentUser() user: RequestUser) {
+    await this.authService.completeOnboarding(user.id);
+    return { message: 'Onboarding completed' };
+  }
+
+  /**
    * GET /api/v1/auth/me
    *
    * Returns the currently authenticated user's profile.

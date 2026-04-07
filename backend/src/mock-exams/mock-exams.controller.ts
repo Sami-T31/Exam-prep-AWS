@@ -96,6 +96,19 @@ export class MockExamsController {
   }
 
   /**
+   * GET /api/v1/mock-exams/attempts
+   * Alias for attempts/history — used by the mobile app.
+   * Must be defined BEFORE the :id/review route to avoid conflict.
+   */
+  @Get('attempts')
+  @ApiOperation({
+    summary: 'List current user mock exam attempts (mobile alias)',
+  })
+  historyAlias(@CurrentUser() user: RequestUser) {
+    return this.mockExamsService.findUserAttempts(user.id);
+  }
+
+  /**
    * Review a completed attempt with all answers and explanations.
    * Only available after submission.
    */

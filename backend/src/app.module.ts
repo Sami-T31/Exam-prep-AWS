@@ -26,6 +26,8 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { PaymentsModule } from './payments/payments.module';
 import { AdminModule } from './admin/admin.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { StatsModule } from './stats/stats.module';
+import { ConsentModule } from './consent/consent.module';
 
 const ROOT_ENV_PATH = resolve(__dirname, '..', '..', '.env');
 
@@ -59,6 +61,8 @@ const ROOT_ENV_PATH = resolve(__dirname, '..', '..', '.env');
     PaymentsModule,
     AdminModule,
     AnalyticsModule,
+    StatsModule,
+    ConsentModule,
 
     ThrottlerModule.forRoot({
       throttlers: [

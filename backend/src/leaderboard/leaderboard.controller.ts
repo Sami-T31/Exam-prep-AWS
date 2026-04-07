@@ -36,8 +36,13 @@ export class LeaderboardController {
     @Query('subjectId') subjectId?: number,
     @Query('limit') limit?: number,
   ) {
+    // Normalize period: mobile sends WEEKLY/MONTHLY/ALL_TIME,
+    // service expects weekly/monthly/alltime
+    const normalized = (period ?? 'weekly')
+      .toLowerCase()
+      .replace('_', '') as string;
     return this.leaderboardService.getLeaderboard(
-      period ?? 'weekly',
+      normalized,
       user.id,
       subjectId ? Number(subjectId) : undefined,
       limit ? Number(limit) : 20,
