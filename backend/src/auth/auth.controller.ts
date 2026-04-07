@@ -183,7 +183,7 @@ export class AuthController {
   @ApiUnauthorizedResponse({ description: 'Not authenticated' })
   async completeOnboardingAlias(@CurrentUser() user: RequestUser) {
     await this.authService.completeOnboarding(user.id);
-    return { message: 'Onboarding completed' };
+    return { success: true };
   }
 
   /**
