@@ -125,6 +125,8 @@ model User {
   deletedAt           DateTime? @map("deleted_at")
 
   consent             Consent?
+  preferences         UserPreference?
+  deviceTokens        DeviceToken[]
   appSessions         AppSession[]
   featureUsageEvents  FeatureUsageEvent[]
   videoProgress       VideoProgress[]
@@ -647,4 +649,49 @@ model GradeRegionEngagementAggregate {
   @@index([cohortSize], map: "grade_region_engagement_aggregates_cohort_size_idx")
   @@index([date], map: "grade_region_engagement_aggregates_date_idx")
   @@map("grade_region_engagement_aggregates")
+}
+
+// ---------------------------------------------------------------------------
+// UserPreference — user-configurable settings (notifications, study reminders)
+// ---------------------------------------------------------------------------
+
+model UserPreference {
+  id                    String   @id @default(uuid()) @map("id")
+  userId                String   @unique @map("user_id")
+  notificationsEnabled  Boolean  @default(true) @map("notifications_enabled")
+  dailyReminderEnabled  Boolean  @default(false) @map("daily_reminder_enabled")
+  dailyReminderTime     String?  @map("daily_reminder_time")
+  preferredLanguage     String   @default("en") @map("preferred_language")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+// ---------------------------------------------------------------------------
+// DeviceToken — push notification tokens for mobile devices
+// ---------------------------------------------------------------------------
+
+enum DevicePlatform {
+  IOS
+  ANDROID
+
+  @@map("device_platform")
+}
+
+model DeviceToken {
+  id        String         @id @default(uuid()) @map("id")
+  userId    String         @map("user_id")
+  token     String         @map("token")
+  platform  DevicePlatform @map("platform")
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, token], map: "device_tokens_user_id_token_unique")
+  @@index([userId], map: "device_tokens_user_id_idx")
+  @@map("device_tokens")
 }
